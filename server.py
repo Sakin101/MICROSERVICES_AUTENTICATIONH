@@ -7,8 +7,8 @@ import models, schemas
 from sqlalchemy.orm import Session
 import mysql
 import logging
-from utils import get_hash
-
+from utils import get_hash,verify
+from oath2 import create_access_token
 
 logging.basicConfig(filename="server_error.log", encoding="utf-8", level=logging.ERROR)
 
@@ -23,8 +23,8 @@ def get_db():
         db.close()
 
 
-@app.post("/login/")
-def login(user: schemas.User, db=Depends(get_db)):
+@app.post("/user")
+def add_user(user: schemas.User, db=Depends(get_db)):
     email_check = db.query(models.Users).filter(
         models.Users.email_address == user.email
     )
@@ -37,17 +37,33 @@ def login(user: schemas.User, db=Depends(get_db)):
     try:
         hash_password = get_hash(user.password)
         user.password = hash_password
+        print(user.password)
         new_user = models.Users(email_address=user.email, password=user.password)
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
-        return {"user": user.email, "password": user.password}
+        return {"user": user.email}
     except Exception as e:
         logging.error("ERROR OCCURED %s", e)
         raise HTTPException(status_code=500)
 
 
-@app.get("/user/{user_email}",response_model=schemas.ReturnUser)
+@app.post("/user/login")
+def login(user: schemas.User, db=Depends(get_db)):
+    user_credentials = (
+        db.query(models.Users).filter(user.email == models.Users.email_address).first()
+    )
+    if not user_credentials:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Credential"
+        )
+    if(not verify(user.password,user_credentials.password)):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,detail="Invalid credentials"
+        )
+    return {"token":create_access_token({"id":user_credentials.id})}
+
+@app.get("/user/{user_email}", response_model=schemas.ReturnUser)
 def get_user(user_email: str, db=Depends(get_db)):
     user = (
         db.query(models.Users).filter(models.Users.email_address == user_email).first()
@@ -56,4 +72,4 @@ def get_user(user_email: str, db=Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
-    return user 
+    return user
