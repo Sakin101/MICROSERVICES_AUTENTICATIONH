@@ -1,7 +1,7 @@
 """Autentication module"""
 
 import logging.config
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, status
 from database import session
 import models, schemas
 from sqlalchemy.orm import Session
@@ -47,8 +47,13 @@ def login(user: schemas.User, db=Depends(get_db)):
         raise HTTPException(status_code=500)
 
 
-@app.get("/user/{user}")
-def get_user(user, db=Depends(get_db)):
-    user = db.query(models.Users).filter(models.Users.email_address == user).first()
-    print(user)
-    return user
+@app.get("/user/{user_email}",response_model=schemas.ReturnUser)
+def get_user(user_email: str, db=Depends(get_db)):
+    user = (
+        db.query(models.Users).filter(models.Users.email_address == user_email).first()
+    )
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+    return user 
