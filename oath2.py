@@ -22,7 +22,7 @@ EXPIRATION_DATE = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
 
 
 def create_access_token(email, auth):
-    expire = datetime.now(datetime.timezone.utc) + timedelta(
+    expire = datetime.utcnow() + timedelta(
         minutes=int(EXPIRATION_DATE)
     )
     to_encode = {"user": email, "exp": expire, "iat": datetime.now(), "admin": auth}
@@ -39,7 +39,7 @@ def verify_access_token(token: str, credential_exception):
         return payload
     except JWTError:
         raise credential_exception
-    return payload
+        
 
 
 def get_user(token: str = Depends(oauth2_scheme)):
