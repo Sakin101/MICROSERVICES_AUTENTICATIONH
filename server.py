@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 import mysql
 import logging
 from utils import get_hash,verify
-from oath2 import create_access_token
+import oath2
+
 
 logging.basicConfig(filename="server_error.log", encoding="utf-8", level=logging.ERROR)
 
@@ -56,13 +57,13 @@ def login(user: OAuth2PasswordRequestForm=Depends(), db=Depends(get_db)):
     )
     if not user_credentials:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Credential"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Invalid Credential"
         )
     if(not verify(user.password,user_credentials.password)):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,detail="Invalid credentials"
+            status_code=status.HTTP_403_FORBIDDEN,detail="Invalid credentials"
         )
-    return {"token":create_access_token(user_credentials.email_address,True)}
+    return {"token":oath2.create_access_token(user_credentials.email_address,True)}
  
 @app.get("/user/{user_email}", response_model=schemas.ReturnUser)
 def get_user(user_email: str, db=Depends(get_db)):
@@ -74,6 +75,6 @@ def get_user(user_email: str, db=Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
     return user
-# if __name__ == "__main__":
-#     import uvicorn
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
+@app.post("/validate")
+async def validate(user=Depends(oath2.get_user)):
+    return user
