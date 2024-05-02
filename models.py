@@ -2,6 +2,9 @@ from sqlalchemy import VARCHAR,Column,Integer
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel
 from sqlalchemy.ext.declarative import declarative_base
+from fastapi.security import HTTPBearer
+
+bearer_scheme=HTTPBearer()
 
 Base=declarative_base()
 
