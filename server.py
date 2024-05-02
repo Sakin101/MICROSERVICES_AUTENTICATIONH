@@ -2,6 +2,7 @@
 
 import logging.config
 from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from database import session
 import models, schemas
 from sqlalchemy.orm import Session
@@ -49,9 +50,9 @@ def add_user(user: schemas.User, db=Depends(get_db)):
 
 
 @app.post("/user/login")
-def login(user: schemas.User, db=Depends(get_db)):
+def login(user: OAuth2PasswordRequestForm=Depends(), db=Depends(get_db)):
     user_credentials = (
-        db.query(models.Users).filter(user.email == models.Users.email_address).first()
+        db.query(models.Users).filter(user.username == models.Users.email_address).first()
     )
     if not user_credentials:
         raise HTTPException(
@@ -61,8 +62,8 @@ def login(user: schemas.User, db=Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,detail="Invalid credentials"
         )
-    return {"token":create_access_token({"id":user_credentials.id})}
-
+    return {"token":create_access_token(user_credentials.email_address,True)}
+ 
 @app.get("/user/{user_email}", response_model=schemas.ReturnUser)
 def get_user(user_email: str, db=Depends(get_db)):
     user = (
@@ -73,3 +74,6 @@ def get_user(user_email: str, db=Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
     return user
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run(app, host="0.0.0.0", port=8000)
