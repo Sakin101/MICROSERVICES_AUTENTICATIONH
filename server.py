@@ -5,10 +5,8 @@ from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from database import session
 import models, schemas
-from sqlalchemy.orm import Session
-import mysql
 import logging
-from utils import get_hash,verify
+from utils import get_hash, verify
 import oath2
 
 
@@ -51,20 +49,23 @@ def add_user(user: schemas.User, db=Depends(get_db)):
 
 
 @app.post("/user/login")
-def login(user: OAuth2PasswordRequestForm=Depends(), db=Depends(get_db)):
+def login(user: OAuth2PasswordRequestForm = Depends(), db=Depends(get_db)):
     user_credentials = (
-        db.query(models.Users).filter(user.username == models.Users.email_address).first()
+        db.query(models.Users)
+        .filter(user.username == models.Users.email_address)
+        .first()
     )
     if not user_credentials:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Invalid Credential"
         )
-    if(not verify(user.password,user_credentials.password)):
+    if not verify(user.password, user_credentials.password):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,detail="Invalid credentials"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials"
         )
-    return {"token":oath2.create_access_token(user_credentials.email_address,True)}
- 
+    return {"token": oath2.create_access_token(user_credentials.email_address, True)}
+
+
 @app.get("/user/{user_email}", response_model=schemas.ReturnUser)
 def get_user(user_email: str, db=Depends(get_db)):
     user = (
@@ -75,6 +76,10 @@ def get_user(user_email: str, db=Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
     return user
+
+
 @app.post("/validate")
 async def validate(user=Depends(oath2.get_user)):
     return user
+
+
