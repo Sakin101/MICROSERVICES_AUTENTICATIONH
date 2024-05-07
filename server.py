@@ -28,16 +28,14 @@ def add_user(user: schemas.User, db=Depends(get_db)):
     email_check = db.query(models.Users).filter(
         models.Users.email_address == user.email
     )
-    if not email_check:
+    if email_check:
         raise HTTPException(
             detail="Email already exists",
-            status_code=HTTPException(status_code=409, detail="Email already exisits"),
-        )
+            status_code=409)
 
     try:
         hash_password = get_hash(user.password)
         user.password = hash_password
-        print(user.password)
         new_user = models.Users(email_address=user.email, password=user.password)
         db.add(new_user)
         db.commit()
